@@ -17,7 +17,7 @@ FuzzySearch matches results that are "pretty close", while precise scores and ca
 
 # Tiny & Fast
 
-FuzzySearch is under 13kb, uses multi-threading for search, and is highly optimized for fast execution and careful memory management.
+FuzzySearch is under 14kb, uses multi-threading for search, and is highly optimized for fast execution and careful memory management.
 
 # Index
 
