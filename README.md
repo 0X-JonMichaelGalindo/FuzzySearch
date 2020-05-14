@@ -49,6 +49,7 @@ FuzzySearch is under 14kb, uses multi-threading for search, and is highly optimi
         - [Perfect](#perfect)
         - [Full](#full)
         - [Fuzzy](#fuzzy)
+- [Example](#example)
 
 # Usage
 
