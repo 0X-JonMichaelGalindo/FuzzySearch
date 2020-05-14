@@ -67,7 +67,7 @@ You can also specify internal data sizes and force FuzzySearch to use synchronou
 
 Send your searchable data to your FuzzySearch instance for loading.
 ```javascript
-fuzzyInstance( myDataArray );
+fuzzyInstance.init( myDataArray );
 ```
 
 Your data can be an array of strings.
@@ -131,7 +131,7 @@ For full result category descriptions and structural differences when searching 
 
 # Constructor Options
 
-The FuzzySearch constructor accepts an options parameter with 3 keys.
+The FuzzySearch constructor accepts an options parameter with 4 keys.
 
 ```
 const options = {
@@ -151,7 +151,7 @@ const options = {
 }
 ```
 
-Set to 2 or 4.
+Set to 2 or 4.  
 Defaults to 2 if unset.
 
 Controls the size allocated for storing each score value, which in turn controls the maximum precision of score values.  
@@ -168,10 +168,11 @@ const options = {
 }
 ```
 
-Set to 2 or 4.
+Set to 2 or 4.  
 Defaults to 2 if unset.
 
-Controls the size allocated for storing each glyph in your searchable data strings and in your search target string. Defaults to 2, which can represent all 16-bit Unicode values.  
+Controls the size allocated for storing each character in your searchable data strings and in your search target string.  
+Defaults to 2, which can represent all 16-bit Unicode values.  
 
 Do not set to 4 unless you have confirmed that your data strings or search target strings contain characters outside this range.  
 Doubling memory requirements, especially for large data sets, can cause memory allocation (and searching) to fail on memory-constrained devices.
@@ -180,11 +181,11 @@ Doubling memory requirements, especially for large data sets, can cause memory a
 
 ```javascript
 const options = {
-    FORCE_SINGLE_THREAD: 2
+    FORCE_SINGLE_THREAD: false
 }
 ```
 
-Set to true or false.
+Set to true or false.  
 Defaults to false if unset.
 
 If set to true, FuzzySearch will not create a web worker, and will run searches on the main thread.
@@ -199,14 +200,16 @@ const options = {
 }
 ```
 
-Set to an integer greater than zero. The default is 200.  
+Set to an integer greater than zero.  
+Defaults to 200 if unset.  
+
 Raising the resolution will raise scores overall.  
 
-If you are searching through many scores, raising the resolution will prevent ties (results with the same score).
-However, raising the resolution too high can cause overflow, where the largest scores exceed the capacity specified by [SCORE_WIDTH_BYTES](#score_width_bytes).
+If you are generating many search results, raising the resolution will prevent ties (results with the same score).  
+However, raising the resolution can cause overflow, where the largest scores exceed the capacity specified by [SCORE_WIDTH_BYTES](#score_width_bytes).
 
 The ratio of scores remain the same.  
-Scores rise linearly with resolution.
+Scores rise linearly with resolution.  
 
 At FUZZY_RESOLUTION: 200
 
@@ -254,7 +257,7 @@ const data = [
 
 If you do not specify the [keys](#keys) parameter, keys will be inferred from the first object in the array.  
 Any key of data[ 0 ] that pairs to a string must also exist and be paired to a string on all subsequent objects in the data array.  
-Any keys not paried to strings on data[ 0 ] will be ignored in subsequent objects in the data array.
+Any keys not paired to strings on data[ 0 ] will be ignored in subsequent objects in the data array.
 
 This will fail to initialize:
 ```javascript
@@ -312,6 +315,7 @@ instance.init( data, keys );
 ## copy
 
 The copy parameter allows conversion of searchable data strings and search target strings to 2 specialized use-case formats: "ascii-words" and "ascii-code".  
+
 Defaults to "direct".
 
 ```javascript
@@ -324,8 +328,10 @@ instance.init( data, keys, copy );
 
 Data is copied literally, including case and whitespace.
 
-`"W"` and `"w"` will not match in a search.
-`"i    t"` and `"i t"` will not match in a search.
+```
+"W" and "w" will not match in a search.
+"i    t" and "i t" will not match perfectly in a search.
+```
 
 ### ascii-words
 
@@ -335,10 +341,10 @@ const instance = new FuzzySearch();
 instance.init( data, keys, copy );
 ```
 
-Only alphanumeric ascii characters are searched, capital letters will be searched as lowercase, and whitespace will be collapsed into a single space (0x20).
+Only alphanumeric ASCII characters are searched, capital letters will be searched as lowercase, and whitespace will be collapsed into a single space (0x20).
 
 ```
-"What's  This?" will be searched as "whats this".
+"What's     This?" will be searched as "whats this".
 ```
 
 ### ascii-code
@@ -349,15 +355,15 @@ const instance = new FuzzySearch();
 instance.init( data, keys, copy );
 ```
 
-ASCII whitespace will be collapsed into a single space (0x20) when searched, and ASCII capital letters will be searched as lowercase.
+ASCII whitespace will be collapsed into a single space (0x20) when searched, and ASCII capital letters will be searched as lowercase. All other characters will be copied directly.
 
 Only these 6 ASCII whitespace characters will be collapsed.
-- space (0x20, ' ')
-- form feed (0x0c, '\f')
-- line feed (0x0a, '\n')
-- carriage return (0x0d, '\r')
-- horizontal tab (0x09, '\t')
-- vertical tab (0x0b, '\v') 
+- space ( ' ' ) - ASCII code: 0x20
+- horizontal tab ( '\t' ) - ASCII code: 0x09
+- line feed ( '\n' ) - ASCII code: 0x0a
+- vertical tab ( '\v' ) - ASCII code: 0x0b
+- form feed ( '\f' ) - ASCII code: 0x0c
+- carriage return ( '\r' ) - ASCII code: 0x0d
 ```
 "       a >=    b;" will be searched as " a >= b;"
 ```
@@ -372,17 +378,21 @@ const instance = new FuzzySearch();
 instance.init( data, keys, copy, fast );
 ```
 
-FuzzySearch includes validation checks for parameters. These checks prevent search table corruption at instantiation. However, they are extremely costly to performance.  
-If you are deploying validated data for searching, or if you are generating data from validity enforcing-code, or if you have a validating pipeline in place, disable these internal checks to speed initialization.
+FuzzySearch includes validation checks for parameters. These checks prevent search table corruption at instantiation.  
+However, they are extremely costly to performance.  
+
+If you are deploying validated data for searching, or if you are generating data from validity-enforcing code, or if you have a validating pipeline in place, disable these internal checks to speed initialization.
 
 Because validation only happens at instantiation, this parameter has no effect on search speed, only load speed.
+
+FuzzySearch's algorithm behavior on malformed, unvalidated data is undefined.
 
 # Search Parameters
 
 Only the target string parameter is required.
 
 ```
-const results = instance.search(
+const results = await instance.search(
     target: string
     limit: unset | int
 )
@@ -396,18 +406,20 @@ The target string will be compared against initialized data to generate scored r
 const instance = new FuzzySearch();
 instance.init( data, keys, copy, fast );
 const searchTarget = "a string to search for";
-const results = instance.search( searchTarget );
+const results = await instance.search( searchTarget );
 ```
 
 ## limit
 
-Set to an integer to limit the maximum number of search results per category.
+Set to an integer to limit the maximum number of search results per category.  
+Defaults to 10.
+
 ```javascript
 const instance = new FuzzySearch();
 instance.init( data, keys, copy, fast );
 const searchTarget = "a string to search for",
     limit = 5;
-const results = instance.search( searchTarget, limit );
+const results = await instance.search( searchTarget, limit );
 const fullList = results.full;
 
 fullList.length <= 5; //true
@@ -418,8 +430,8 @@ fullList.length <= 5; //true
 The information in a results object answers 4 questions:
 1. What field of your data did the results come from? (key)
 2. How were results scores calculated? (perfect, full, or fuzzy)
-3. What data entry did your results come from (index)
-4. What score was calculated? (score)
+3. What data entry did your results come from? (index)
+4. What was the computed score? (score)
 
 For searching an array of strings (no keys):
 ```
@@ -457,7 +469,7 @@ When searching an array of strings, the results contain 3 lists, 1 for perfect s
 const data = [ "string", "... " ];
 const instance = new FuzzySearch();
 instance.init( data );
-const results = instance.search( "search string" );
+const results = await instance.search( "search string" );
 /*
 results === {
     perfect: [...],
@@ -474,7 +486,7 @@ const instance = new FuzzySearch();
 instance.init( data );
 
 //search for "string" returns index 0.
-const resultsA = instance.search( "string" );
+const resultsA = await instance.search( "string" );
 const indexA = results.perfect[ 0 ].index;
 const scoreA = results.perfect[ 0 ].score;
 indexA === 0; //true
@@ -482,7 +494,7 @@ data[ indexA ] === "string"; //true
 scoreA; //a number
 
 //search for "words" returns index 1.
-const resultsB = instance.search( "words" );
+const resultsB = await instance.search( "words" );
 const indexB = results.perfect[ 0 ].index;
 const scoreB = results.perfect[ 0 ].score;
 indexB === 1; //true
@@ -492,17 +504,28 @@ scoreB; //a number
 
 ### Object Array Results
 
-When searching an array of objects, FuzzySearch performs 1 search for each field. The results contains 1 results object as described above for each field.
+When searching an array of objects, FuzzySearch performs 1 search for each field.  
+The results contains 1 results object for each field key.
 ```javascript
-const data = [ "string", "... " ];
+const data = [ 
+    { key: "string", key2: "string" },
+    { key: "string", key2: "string" },
+];
 const instance = new FuzzySearch();
 instance.init( data );
-const results = instance.search( "search string" );
+const results = await instance.search( "search string" );
 /*
 results === {
-    perfect: [...],
-    full: [...],
-    fuzzy: [...]
+    key: {
+        perfect: [...],
+        full: [...],
+        fuzzy: [...]
+    },
+    key2: {
+        perfect: [...],
+        full: [...],
+        fuzzy: [...]
+    }
 }
 */
 ```
@@ -517,7 +540,7 @@ const instance = new FuzzySearch();
 instance.init( data );
 
 //search for "string" returns index 0 under the "key" property.
-const resultsA = instance.search( "string" );
+const resultsA = await instance.search( "string" );
 const keyResults = results.key; //results for "key"
 const indexA = keyResults.perfect[ 0 ].index;
 const scoreA = keyResults.perfect[ 0 ].score;
@@ -525,7 +548,7 @@ indexA === 0; //true
 data[ indexA ] === "string"; //true
 
 //search for "words" returns index 1 under the "key" property.
-const resultsB = instance.search( "words" );
+const resultsB = await instance.search( "words" );
 const keyResults = results.key; //results for "key"
 const indexB = keyResults.perfect[ 0 ].index;
 const scoreB = keyResults.perfect[ 0 ].score;
@@ -536,11 +559,11 @@ data[ firstIndex ] === "words"; //true
 ## Score Types
 
 There are 3 kinds of scores for each search: perfect, full, and fuzzy.  
-How you use these scores will depend on your use case, and each exists for a different reason.
+How you use these scores will depend on your use case. Each is useful in its own context.
 
 ### Perfect
 
-Results in the perfect list matched the input character-for-character.  
+The results in the perfect list are data strings that matched the input character-for-character.  
 The score indicates how many matches.
 ```
 search "hello" in "hello"
@@ -555,7 +578,6 @@ perfect score: 3
 Although perfect results are the best results, this list will often be empty.
 ```
 search "helo" in "hello"
-perfect score: 0
 (no perfect matches)
 ```
 
@@ -575,7 +597,7 @@ full score: 1
 ```
 ```
 search "ab" in "a"
-(no result)
+(no full results)
 (matched "a". Did not match "b". Not all unique characters matched.)
 ```
 
@@ -591,4 +613,45 @@ fuzzy score: lower number
 
 search "5" in "This has no numbers."
 fuzzy score: 0
+```
+
+# Example
+
+This example loads FuzzySearch, passes it data, performs a search, and logs the scored results to the console.
+```html
+<script src="FuzzySearch.min.js"></script>
+<script>
+const myData = [
+    { title: "Blue Sky", genre: "fiction" },
+    { title: "Green Plants", genre: "textbook" },
+    { title: "Black Plague", genre: "history" }
+];
+
+const searchEngine = new FuzzySearch();
+
+const keys = [ "title", "genre" ],
+    copyMode = "ascii-words";
+searchEngine.init( myData, keys, copyMode );
+
+searchEngine.search( "blue" ).then(
+    results => {
+        const list = results.title.perfect;
+        for( let result of list ) {
+            const score = result.score;
+            const dataIndex = result.index;
+
+            const dataEntry = myData[ dataIndex ],
+                dataTitle = dataEntry.title;
+
+            const message = 
+                "Got result with score " + 
+                    score +
+                " for data entry titled " +
+                    dataTitle;
+
+            console.log( message );
+        }
+    }
+)
+</script>
 ```

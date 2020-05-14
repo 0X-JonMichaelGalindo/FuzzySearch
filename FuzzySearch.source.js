@@ -1751,16 +1751,22 @@ const FuzzySearch = function( options = {} ) {
                     )
                 }
         
+                const computeSearchScores =
                 ${computeSearchScores.toLocaleString()}
         
+                const createTableViewsFromBuffer =
                 ${createTableViewsFromBuffer.toLocaleString()}
         
+                const getHeaderTableView =
                 ${getHeaderTableView.toLocaleString()}
         
+                const getScoreTableView =
                 ${getScoreTableView.toLocaleString()}
         
+                const getDataTableView =
                 ${getDataTableView.toLocaleString()}
 
+                const createTableFromTarget =
                 ${createTableFromTarget.toLocaleString()}
                 `,
             sourceFile = new Blob(
